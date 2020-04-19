@@ -1,0 +1,346 @@
+// Package gvar provides an universal variable type, like generics.
+package gvar
+
+import (
+	"encoding/json"
+	"time"
+
+	"github.com/linxlib/map/internal/empty"
+
+	"github.com/linxlib/map/internal/gtype"
+
+	"github.com/linxlib/conv"
+)
+
+// Var is an universal variable type.
+type Var struct {
+	value interface{} // Underlying value.
+	safe  bool        // Concurrent safe or not.
+}
+
+// New creates and returns a new *Var with given <value>.
+// The optional parameter <safe> specifies whether Var is used in concurrent-safety,
+// which is false in default.
+func New(value interface{}, safe ...bool) *Var {
+	v := Create(value, safe...)
+	return &v
+}
+
+// Create creates and returns a new Var with given <value>.
+// The optional parameter <safe> specifies whether Var is used in concurrent-safety,
+// which is false in default.
+func Create(value interface{}, safe ...bool) Var {
+	v := Var{}
+	if len(safe) > 0 && !safe[0] {
+		v.safe = true
+		v.value = gtype.NewInterface(value)
+	} else {
+		v.value = value
+	}
+	return v
+}
+
+// Clone does a shallow copy of current Var and returns a pointer to this Var.
+func (v *Var) Clone() *Var {
+	return New(v.Val(), v.safe)
+}
+
+// Set sets <value> to <v>, and returns the old value.
+func (v *Var) Set(value interface{}) (old interface{}) {
+	if v.safe {
+		if t, ok := v.value.(*gtype.Interface); ok {
+			old = t.Set(value)
+			return
+		}
+	}
+	old = v.value
+	v.value = value
+	return
+}
+
+// Val returns the current value of <v>.
+func (v *Var) Val() interface{} {
+	if v == nil {
+		return nil
+	}
+	if v.safe {
+		if t, ok := v.value.(*gtype.Interface); ok {
+			return t.Val()
+		}
+	}
+	return v.value
+}
+
+// Interface is alias of Val.
+func (v *Var) Interface() interface{} {
+	return v.Val()
+}
+
+// IsNil checks whether <v> is nil.
+func (v *Var) IsNil() bool {
+	return v.Val() == nil
+}
+
+// IsEmpty checks whether <v> is empty.
+func (v *Var) IsEmpty() bool {
+	return empty.IsEmpty(v.Val())
+}
+
+// Bytes converts and returns <v> as []byte.
+func (v *Var) Bytes() []byte {
+	return conv.Bytes(v.Val())
+}
+
+// String converts and returns <v> as string.
+func (v *Var) String() string {
+	return conv.String(v.Val())
+}
+
+// Bool converts and returns <v> as bool.
+func (v *Var) Bool() bool {
+	return conv.Bool(v.Val())
+}
+
+// Int converts and returns <v> as int.
+func (v *Var) Int() int {
+	return conv.Int(v.Val())
+}
+
+// Ints converts and returns <v> as []int.
+func (v *Var) Ints() []int {
+	return conv.Ints(v.Val())
+}
+
+// Int8 converts and returns <v> as int8.
+func (v *Var) Int8() int8 {
+	return conv.Int8(v.Val())
+}
+
+// Int16 converts and returns <v> as int16.
+func (v *Var) Int16() int16 {
+	return conv.Int16(v.Val())
+}
+
+// Int32 converts and returns <v> as int32.
+func (v *Var) Int32() int32 {
+	return conv.Int32(v.Val())
+}
+
+// Int64 converts and returns <v> as int64.
+func (v *Var) Int64() int64 {
+	return conv.Int64(v.Val())
+}
+
+// Uint converts and returns <v> as uint.
+func (v *Var) Uint() uint {
+	return conv.Uint(v.Val())
+}
+
+// Uints converts and returns <v> as []uint.
+func (v *Var) Uints() []uint {
+	return conv.Uints(v.Val())
+}
+
+// Uint8 converts and returns <v> as uint8.
+func (v *Var) Uint8() uint8 {
+	return conv.Uint8(v.Val())
+}
+
+// Uint16 converts and returns <v> as uint16.
+func (v *Var) Uint16() uint16 {
+	return conv.Uint16(v.Val())
+}
+
+// Uint32 converts and returns <v> as uint32.
+func (v *Var) Uint32() uint32 {
+	return conv.Uint32(v.Val())
+}
+
+// Uint64 converts and returns <v> as uint64.
+func (v *Var) Uint64() uint64 {
+	return conv.Uint64(v.Val())
+}
+
+// Float32 converts and returns <v> as float32.
+func (v *Var) Float32() float32 {
+	return conv.Float32(v.Val())
+}
+
+// Float64 converts and returns <v> as float64.
+func (v *Var) Float64() float64 {
+	return conv.Float64(v.Val())
+}
+
+// Floats converts and returns <v> as []float64.
+func (v *Var) Floats() []float64 {
+	return conv.Floats(v.Val())
+}
+
+// Strings converts and returns <v> as []string.
+func (v *Var) Strings() []string {
+	return conv.Strings(v.Val())
+}
+
+// Interfaces converts and returns <v> as []interfaces{}.
+func (v *Var) Interfaces() []interface{} {
+	return conv.Interfaces(v.Val())
+}
+
+// Slice is alias of Interfaces.
+func (v *Var) Slice() []interface{} {
+	return v.Interfaces()
+}
+
+// Array is alias of Interfaces.
+func (v *Var) Array() []interface{} {
+	return v.Interfaces()
+}
+
+// Vars converts and returns <v> as []*Var.
+func (v *Var) Vars() []*Var {
+	array := conv.Interfaces(v.Val())
+	if len(array) == 0 {
+		return nil
+	}
+	vars := make([]*Var, len(array))
+	for k, v := range array {
+		vars[k] = New(v)
+	}
+	return vars
+}
+
+// Time converts and returns <v> as time.Time.
+// The parameter <format> specifies the format of the time string using gtime,
+// eg: Y-m-d H:i:s.
+func (v *Var) Time(format ...string) time.Time {
+	return conv.Time(v.Val(), format...)
+}
+
+// Duration converts and returns <v> as time.Duration.
+// If value of <v> is string, then it uses time.ParseDuration for conversion.
+func (v *Var) Duration() time.Duration {
+	return conv.Duration(v.Val())
+}
+
+// GTime converts and returns <v> as *gtime.Time.
+// The parameter <format> specifies the format of the time string using gtime,
+// eg: Y-m-d H:i:s.
+//func (v *Var) GTime(format ...string) *gtime.Time {
+//	return conv.GTime(v.Val(), format...)
+//}
+
+// Map converts <v> to map[string]interface{}.
+func (v *Var) Map(tags ...string) map[string]interface{} {
+	return conv.Map(v.Val(), tags...)
+}
+
+// MapStrStr converts <v> to map[string]string.
+func (v *Var) MapStrStr(tags ...string) map[string]string {
+	return conv.MapStrStr(v.Val(), tags...)
+}
+
+// MapStrVar converts <v> to map[string]*Var.
+func (v *Var) MapStrVar(tags ...string) map[string]*Var {
+	m := v.Map(tags...)
+	if len(m) > 0 {
+		vMap := make(map[string]*Var)
+		for k, v := range m {
+			vMap[k] = New(v)
+		}
+		return vMap
+	}
+	return nil
+}
+
+// MapDeep converts <v> to map[string]interface{} recursively.
+func (v *Var) MapDeep(tags ...string) map[string]interface{} {
+	return conv.MapDeep(v.Val(), tags...)
+}
+
+// MapDeep converts <v> to map[string]string recursively.
+func (v *Var) MapStrStrDeep(tags ...string) map[string]string {
+	return conv.MapStrStrDeep(v.Val(), tags...)
+}
+
+// MapStrVarDeep converts <v> to map[string]*Var recursively.
+func (v *Var) MapStrVarDeep(tags ...string) map[string]*Var {
+	m := v.MapDeep(tags...)
+	if len(m) > 0 {
+		vMap := make(map[string]*Var)
+		for k, v := range m {
+			vMap[k] = New(v)
+		}
+		return vMap
+	}
+	return nil
+}
+
+// Struct maps value of <v> to <pointer>.
+// The parameter <pointer> should be a pointer to a struct instance.
+// The parameter <mapping> is used to specify the key-to-attribute mapping rules.
+func (v *Var) Struct(pointer interface{}, mapping ...map[string]string) error {
+	return conv.Struct(v.Val(), pointer, mapping...)
+}
+
+// Struct maps value of <v> to <pointer> recursively.
+// The parameter <pointer> should be a pointer to a struct instance.
+// The parameter <mapping> is used to specify the key-to-attribute mapping rules.
+func (v *Var) StructDeep(pointer interface{}, mapping ...map[string]string) error {
+	return conv.StructDeep(v.Val(), pointer, mapping...)
+}
+
+// Structs converts <v> to given struct slice.
+func (v *Var) Structs(pointer interface{}, mapping ...map[string]string) (err error) {
+	return conv.Structs(v.Val(), pointer, mapping...)
+}
+
+// StructsDeep converts <v> to given struct slice recursively.
+func (v *Var) StructsDeep(pointer interface{}, mapping ...map[string]string) (err error) {
+	return conv.StructsDeep(v.Val(), pointer, mapping...)
+}
+
+// MapToMap converts map type variable <params> to another map type variable <pointer>.
+// The elements of <pointer> should be type of struct/*struct.
+func (v *Var) MapToMap(pointer interface{}, mapping ...map[string]string) (err error) {
+	return conv.MapToMap(v.Val(), pointer, mapping...)
+}
+
+// MapToMapDeep recursively converts map type variable <params> to another map type variable <pointer>.
+// The elements of <pointer> should be type of struct/*struct.
+func (v *Var) MapToMapDeep(pointer interface{}, mapping ...map[string]string) (err error) {
+	return conv.MapToMapDeep(v.Val(), pointer, mapping...)
+}
+
+// MapToMaps converts map type variable <params> to another map type variable <pointer>.
+// The elements of <pointer> should be type of []struct/[]*struct.
+func (v *Var) MapToMaps(pointer interface{}, mapping ...map[string]string) (err error) {
+	return conv.MapToMaps(v.Val(), pointer, mapping...)
+}
+
+// MapToMapsDeep recursively converts map type variable <params> to another map type variable <pointer>.
+// The elements of <pointer> should be type of []struct/[]*struct.
+func (v *Var) MapToMapsDeep(pointer interface{}, mapping ...map[string]string) (err error) {
+	return conv.MapToMapsDeep(v.Val(), pointer, mapping...)
+}
+
+// MarshalJSON implements the interface MarshalJSON for json.Marshal.
+func (v *Var) MarshalJSON() ([]byte, error) {
+	return json.Marshal(v.Val())
+}
+
+// UnmarshalJSON implements the interface UnmarshalJSON for json.Unmarshal.
+func (v *Var) UnmarshalJSON(b []byte) error {
+	var i interface{}
+	err := json.Unmarshal(b, &i)
+	if err != nil {
+		return err
+	}
+	v.Set(i)
+	return nil
+}
+
+// UnmarshalValue is an interface implement which sets any type of value for Var.
+func (v *Var) UnmarshalValue(value interface{}) error {
+	v.Set(value)
+	return nil
+}
