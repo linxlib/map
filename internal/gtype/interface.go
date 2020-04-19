@@ -2,6 +2,7 @@ package gtype
 
 import (
 	"encoding/json"
+	"github.com/linxlib/conv"
 	"sync/atomic"
 )
 
