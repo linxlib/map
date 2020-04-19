@@ -1,6 +1,7 @@
 package gtype
 
 import (
+	"github.com/linxlib/conv"
 	"strconv"
 	"sync/atomic"
 )
